@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>نظام الدور</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #eef2ff, #f8fafc);
+    color: #1f2937;
+    display: grid;
+    place-items: center;
+}
+
+.app {
+    width: 440px;
+    background: #fff;
+    border-radius: 22px;
+    padding: 28px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.12);
+    margin: auto;
+}
+
+.logo {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #16a34a);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+h2 {
+    margin: 0;
+    text-align: center;
+}
+
+.subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #6b7280;
+    margin: 8px 0 22px;
+}
+
+label {
+    display: block;
+    margin: 14px 0 6px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 12px;
+    font-size: 16px;
+    outline: none;
+}
+
+input:focus, select:focus {
+    border-color: #2563eb;
+}
+
+.row {
+    display: flex;
+    gap: 10px;
+}
+
+.row > div {
+    flex: 1;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
+    flex: 1;
+    border: none;
+    padding: 13px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.print-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+}
+
+.reset-btn {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.developer {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+#printArea {
+    width: 80mm;
+    margin: 0 auto;
+}
+
+@page {
+    size: 80mm 50mm;
+    margin: 0;
+}
+
+.ticket {
+    width: 80mm;
+    height: 50mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    page-break-after: always;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.org-name {
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.date-time {
+    font-size: 10px;
+    margin: 2px 0;
+}
+
+.number {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 3px 0;
+}
+
+.footer {
+    font-size: 10px;
+}
+
+@media print {
+    body {
+        background: white;
+        display: block;
+    }
+
+    .app {
+        display: none;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+    <div class="logo">Q</div>
+
+    <h2>نظام طباعة أرقام الدور</h2>
+    <div class="subtitle">Queue Ticket System</div>
+
+    <label>اسم المؤسسة</label>
+    <input type="text" id="organizationName" value="جمعية الاحسان الخيرية">
+
+    <label>نوع الطباعة</label>
+    <select id="printType" onchange="togglePrintType()">
+        <option value="count">طباعة حسب عدد الأشخاص</option>
+        <option value="range">طباعة من رقم إلى رقم</option>
+    </select>
+
+    <div id="countSection">
+        <label>عدد الأشخاص</label>
+        <input type="number" id="count" placeholder="مثال: 5">
+
+        <label>طريقة العد</label>
+        <select id="mode">
+            <option value="continue">المتابعة من آخر رقم</option>
+            <option value="reset">البدء من جديد</option>
+        </select>
+    </div>
+
+    <div id="rangeSection" style="display:none;">
+        <div class="row">
+            <div>
+                <label>من رقم</label>
+                <input type="number" id="fromNumber" placeholder="مثال: 10">
+            </div>
+            <div>
+                <label>إلى رقم</label>
+                <input type="number" id="toNumber" placeholder="مثال: 20">
+            </div>
+        </div>
+    </div>
+
+    <label>الحرف / الرمز اختياري</label>
+    <input type="text" id="prefix" placeholder="مثال: A" maxlength="5">
+
+    <div class="actions">
+        <button class="print-btn" onclick="printNumbers()">طباعة</button>
+        <button class="reset-btn" onclick="resetCounter()">تصفير العداد</button>
+    </div>
+
+    <div class="developer">Developed by Abdulaziz Kabbani</div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+function togglePrintType() {
+    const printType = document.getElementById("printType").value;
+    document.getElementById("countSection").style.display = printType === "count" ? "block" : "none";
+    document.getElementById("rangeSection").style.display = printType === "range" ? "block" : "none";
+}
+
+function createTicket(number, prefix, organizationName) {
+    let now = new Date();
+    let date = now.toLocaleDateString("ar-EG");
+    let time = now.toLocaleTimeString("ar-EG");
+
+    let ticket = document.createElement("div");
+    ticket.className = "ticket";
+
+    ticket.innerHTML = `
+        <div class="org-name">${organizationName}</div>
+        <div class="date-time">${date} - ${time}</div>
+        <div class="number">${prefix}${String(number).padStart(3, '0')}</div>
+        <div class="footer">يرجى الانتظار حتى يتم مناداة رقمك</div>
+    `;
+
+    return ticket;
+}
+
+function printNumbers() {
+    let printType = document.getElementById("printType").value;
+    let prefix = document.getElementById("prefix").value || "";
+    let organizationName = document.getElementById("organizationName").value || "جمعية الاحسان الخيرية";
+    let printArea = document.getElementById("printArea");
+
+    printArea.innerHTML = "";
+
+    if (printType === "count") {
+        let count = parseInt(document.getElementById("count").value);
+        let mode = document.getElementById("mode").value;
+
+        if (!count || count <= 0) {
+            alert("أدخل عدد صحيح");
+            return;
+        }
+
+        if (mode === "reset") {
+            localStorage.setItem("lastNumber", 0);
+        }
+
+        let lastNumber = parseInt(localStorage.getItem("lastNumber")) || 0;
+
+        for (let i = 1; i <= count; i++) {
+            lastNumber++;
+            printArea.appendChild(createTicket(lastNumber, prefix, organizationName));
+        }
+
+        localStorage.setItem("lastNumber", lastNumber);
+    }
+
+    if (printType === "range") {
+        let fromNumber = parseInt(document.getElementById("fromNumber").value);
+        let toNumber = parseInt(document.getElementById("toNumber").value);
+
+        if (!fromNumber || !toNumber || fromNumber <= 0 || toNumber <= 0) {
+            alert("أدخل أرقام صحيحة");
+            return;
+        }
+
+        if (fromNumber > toNumber) {
+            alert("رقم البداية يجب أن يكون أصغر من أو يساوي رقم النهاية");
+            return;
+        }
+
+        for (let number = fromNumber; number <= toNumber; number++) {
+            printArea.appendChild(createTicket(number, prefix, organizationName));
+        }
+
+        localStorage.setItem("lastNumber", toNumber);
+    }
+
+    window.print();
+    printArea.innerHTML = "";
+}
+
+function resetCounter() {
+    if (confirm("هل أنت متأكد من تصفير العداد؟")) {
+        localStorage.setItem("lastNumber", 0);
+        alert("تم تصفير العداد");
+    }
+}
+</script>
+
+</body>
+</html>
